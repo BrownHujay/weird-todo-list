@@ -1,75 +1,44 @@
-import { useMemo, useState } from 'react';
 import type { FormEventHandler } from 'react';
 import type { TodoItem } from '../types';
 
 interface TodoListProps {
   todos: TodoItem[];
-  archivedTodos: TodoItem[];
   newTodo: string;
   newDueDate: string;
-  newDueTime: string;
   deletingId: number | null;
-  completingId: number | null;
-  isDarkMode: boolean;
   onNewTodoChange: (value: string) => void;
   onDueDateChange: (value: string) => void;
-  onDueTimeChange: (value: string) => void;
   onAddTodo: FormEventHandler<HTMLFormElement>;
-  onCompleteTodo: (id: number) => void;
+  onToggleTodo: (id: number) => void;
   onDeleteTodo: (id: number) => void;
-  onRestoreTodo: (todo: TodoItem) => void;
 }
-
-const formatDate = (value?: string | null) => {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-};
-
-const formatTime = (value?: string | null) => {
-  if (!value) return null;
-  const [hoursStr, minutesStr] = value.split(':');
-  const hours = Number.parseInt(hoursStr ?? '', 10);
-  const minutes = Number.parseInt(minutesStr ?? '', 10);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    }
-    return value;
-  }
-  const display = new Date();
-  display.setHours(hours, minutes, 0, 0);
-  return display.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-};
 
 const TodoList = ({
   todos,
-  archivedTodos,
   newTodo,
   newDueDate,
-  newDueTime,
   deletingId,
-  completingId,
-  isDarkMode,
   onNewTodoChange,
   onDueDateChange,
-  onDueTimeChange,
   onAddTodo,
-  onCompleteTodo,
+  onToggleTodo,
   onDeleteTodo,
-  onRestoreTodo,
 }: TodoListProps) => {
-  const [showArchive, setShowArchive] = useState(false);
+  const completedCount = todos.filter((todo) => todo.completed).length;
 
-  const archiveSummary = useMemo(() => {
-    const completed = archivedTodos.filter((todo) => todo.archived_reason === 'completed').length;
-    const deleted = archivedTodos.filter((todo) => todo.archived_reason === 'deleted').length;
-    return { completed, deleted };
-  }, [archivedTodos]);
+  const formatTodoDate = (todo: TodoItem) => {
+    const rawDate = todo.due_at ?? todo.created_at;
+    if (!rawDate) return 'No due date set';
 
-  const activeTaskCopy = todos.length === 0 ? 'No tasks yet — craft your next move above.' : undefined;
+    const parsed = new Date(rawDate);
+    if (Number.isNaN(parsed.getTime())) return 'No due date set';
+
+    return parsed.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
 
   return (
     <div className="animate-fadeIn">
@@ -79,235 +48,95 @@ const TodoList = ({
             <input
               type="text"
               value={newTodo}
-              onChange={(event) => onNewTodoChange(event.target.value)}
+              onChange={(e) => onNewTodoChange(e.target.value)}
               placeholder="Add a new task..."
               aria-label="Task description"
-              className={`w-full rounded-xl border p-3 placeholder:italic backdrop-blur-lg focus:outline-none focus:ring-2 ${
-                isDarkMode
-                  ? 'border-white/10 bg-white/5 text-indigo-100 placeholder:text-indigo-200/40 focus:ring-indigo-300/40'
-                  : 'border-white/20 bg-white/10 text-pink-900/90 placeholder:text-pink-700/60 focus:ring-white/40'
-              }`}
+              className="w-full rounded-xl border border-white/20 bg-white/10 p-3 text-pink-900/90 placeholder-pink-700/60 backdrop-blur-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
-            <div className="flex w-full gap-3 sm:w-auto">
-              <input
-                type="date"
-                value={newDueDate}
-                onChange={(event) => onDueDateChange(event.target.value)}
-                aria-label="Choose a due date"
-                className={`w-full rounded-xl border p-3 backdrop-blur-lg focus:outline-none focus:ring-2 sm:max-w-[200px] ${
-                  isDarkMode
-                    ? 'border-white/10 bg-white/5 text-indigo-100 focus:ring-indigo-300/40'
-                    : 'border-white/20 bg-white/10 text-pink-900/90 focus:ring-white/40'
-                }`}
-              />
-              <input
-                type="time"
-                value={newDueTime}
-                onChange={(event) => onDueTimeChange(event.target.value)}
-                aria-label="Choose a time"
-                className={`w-full rounded-xl border p-3 backdrop-blur-lg focus:outline-none focus:ring-2 sm:max-w-[150px] ${
-                  isDarkMode
-                    ? 'border-white/10 bg-white/5 text-indigo-100 focus:ring-indigo-300/40'
-                    : 'border-white/20 bg-white/10 text-pink-900/90 focus:ring-white/40'
-                }`}
-              />
-            </div>
+            <input
+              type="date"
+              value={newDueDate}
+              onChange={(e) => onDueDateChange(e.target.value)}
+              aria-label="Choose a due date"
+              className="w-full rounded-xl border border-white/20 bg-white/10 p-3 text-pink-900/90 placeholder-pink-700/60 backdrop-blur-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/30 sm:max-w-[200px]"
+            />
           </div>
           <button
             type="submit"
-            className={`rounded-xl border px-6 py-2 text-white shadow-lg backdrop-blur-lg transition-all duration-300 hover:shadow-[0_0_20px_rgba(236,72,153,0.4)] active:scale-95 ${
-              isDarkMode
-                ? 'border-violet-400/40 bg-gradient-to-r from-purple-500/80 to-indigo-500/80 hover:border-violet-300/60'
-                : 'border-white/20 bg-pink-600/80 hover:border-white/30 hover:bg-pink-700/90'
-            }`}
+            className="rounded-xl border border-white/20 bg-pink-600/80 px-6 py-2 text-white shadow-lg backdrop-blur-lg transition-all duration-300 hover:border-white/30 hover:bg-pink-700/90 hover:shadow-[0_0_20px_rgba(236,72,153,0.4)] active:scale-95"
           >
             Add
           </button>
         </div>
       </form>
 
-      {activeTaskCopy ? (
-        <div
-          className={`animate-fadeIn rounded-2xl border p-6 text-center backdrop-blur-lg ${
-            isDarkMode
-              ? 'border-white/10 bg-white/5 text-indigo-100'
-              : 'border-white/20 bg-white/40 text-pink-900/70'
-          }`}
-        >
-          {activeTaskCopy}
+      {todos.length === 0 ? (
+        <div className="animate-fadeIn rounded-2xl border border-white/20 bg-white/30 p-6 text-center text-pink-900/70 backdrop-blur-lg">
+          No tasks yet — add something above to get started!
         </div>
       ) : (
         <div className="space-y-3">
-          {todos.map((todo) => {
-            const dueDateLabel = formatDate(todo.due_at ?? todo.created_at);
-            const timeLabel = formatTime(todo.scheduled_time ?? (todo.due_at ?? undefined));
-            const animationClass =
-              completingId === todo.id
-                ? 'animate-rollComplete'
-                : deletingId === todo.id
-                ? 'animate-fadeOut'
-                : 'animate-fadeIn';
-            const baseClass = todo.completed
-              ? isDarkMode
-                ? 'border-emerald-400/30 bg-emerald-500/20 text-emerald-100'
-                : 'border-green-200/80 bg-green-100/70 text-green-900/90'
-              : isDarkMode
-              ? 'border-white/10 bg-white/5 text-indigo-100 hover:bg-white/10 hover:shadow-lg hover:shadow-indigo-500/10'
-              : 'border-white/20 bg-white/40 text-pink-900/90 hover:bg-white/60 hover:shadow-lg hover:shadow-pink-500/10';
-
-            return (
-              <div
-                key={todo.id}
-                className={`flex items-start rounded-2xl border p-4 backdrop-blur-lg transition-all duration-300 ${baseClass} ${animationClass}`}
-              >
-                <input
-                  type="checkbox"
-                  checked={todo.completed}
-                  onChange={() => onCompleteTodo(todo.id)}
-                  className={`mt-1 h-5 w-5 rounded-full border-2 transition-transform duration-200 focus:ring-2 ${
-                    isDarkMode
-                      ? 'border-indigo-300/50 text-indigo-200 focus:ring-indigo-300/40'
-                      : 'border-pink-200 text-pink-400 focus:ring-pink-300'
+          {todos.map((todo) => (
+            <div
+              key={todo.id}
+              className={`flex items-start rounded-2xl border border-white/20 p-4 backdrop-blur-lg transition-all duration-300 ${
+                deletingId === todo.id ? 'animate-fadeOut' : 'animate-fadeIn'
+              } ${
+                todo.completed
+                  ? 'bg-green-100/40 text-green-900/90 hover:shadow-lg hover:shadow-green-500/10'
+                  : 'bg-white/40 text-pink-900/90 hover:bg-white/60 hover:shadow-lg hover:shadow-pink-500/10'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={todo.completed}
+                onChange={() => onToggleTodo(todo.id)}
+                className="mt-1 h-5 w-5 rounded-full border-pink-200 text-pink-400 transition-transform duration-200 focus:ring-pink-300"
+                aria-label={`Mark ${todo.text} as ${todo.completed ? 'incomplete' : 'complete'}`}
+              />
+              <div className="ml-3 flex-1">
+                <p
+                  className={`font-medium transition-all duration-300 ${
+                    todo.completed ? 'line-through text-green-900/60 animate-completePulse' : ''
                   }`}
-                  aria-label={`Mark ${todo.text} as complete`}
-                />
-                <div className="ml-3 flex-1">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p
-                      className={`font-medium transition-all duration-300 ${
-                        todo.completed ? 'line-through opacity-70' : ''
-                      }`}
-                    >
-                      {todo.text}
-                    </p>
-                    {timeLabel && (
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
-                          isDarkMode
-                            ? 'bg-indigo-500/20 text-indigo-100'
-                            : 'bg-pink-500/15 text-pink-700/80'
-                        }`}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-3 w-3"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {timeLabel}
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className={`mt-1 text-xs ${
-                      isDarkMode ? 'text-indigo-100/60' : 'text-pink-900/70'
-                    }`}
-                  >
-                    {todo.due_at ? 'Due' : 'Added'} {dueDateLabel ?? 'soon'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => onDeleteTodo(todo.id)}
-                  className={`ml-3 rounded-lg p-1 transition-colors duration-200 ${
-                    isDarkMode
-                      ? 'text-indigo-200/70 hover:bg-indigo-500/20 hover:text-indigo-100'
-                      : 'text-pink-700/70 hover:bg-pink-100/50 hover:text-pink-900'
-                  }`}
-                  aria-label={`Delete ${todo.text}`}
-                  type="button"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
+                  {todo.text}
+                </p>
+                <p className="mt-1 text-xs text-pink-900/70">
+                  {todo.due_at ? 'Due' : 'Added'} {formatTodoDate(todo)}
+                </p>
               </div>
-            );
-          })}
+              <button
+                onClick={() => onDeleteTodo(todo.id)}
+                className="rounded-lg p-1 text-pink-700/70 transition-colors duration-200 hover:bg-pink-100/50 hover:text-pink-900"
+                aria-label={`Delete ${todo.text}`}
+                type="button"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
-      <div className="mt-10 space-y-3">
-        <button
-          type="button"
-          onClick={() => setShowArchive((prev) => !prev)}
-          className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm font-semibold uppercase tracking-[0.2em] backdrop-blur-lg ${
-            isDarkMode
-              ? 'border-white/10 bg-white/5 text-indigo-100 hover:bg-white/10'
-              : 'border-white/20 bg-white/40 text-pink-900/80 hover:bg-white/60'
-          }`}
-          aria-expanded={showArchive}
-        >
-          <span>Archive</span>
-          <span className="text-xs tracking-normal text-white/70">
-            {archivedTodos.length} saved • {archiveSummary.completed} completed • {archiveSummary.deleted} deleted
-          </span>
-        </button>
-
-        {showArchive && (
-          <div
-            className={`animate-archiveReveal grid gap-3 rounded-2xl border p-5 backdrop-blur-lg ${
-              isDarkMode
-                ? 'border-white/10 bg-white/5'
-                : 'border-white/20 bg-white/30'
-            }`}
-          >
-            {archivedTodos.length === 0 ? (
-              <p className={`text-sm ${isDarkMode ? 'text-indigo-100/70' : 'text-pink-900/70'}`}>
-                Nothing archived yet — complete or delete a task to see it celebrated here.
-              </p>
-            ) : (
-              archivedTodos.map((todo) => {
-                const archivedDate = formatDate(todo.archived_at ?? undefined);
-                const timeLabel = formatTime(todo.scheduled_time ?? (todo.due_at ?? undefined));
-                return (
-                  <div
-                    key={todo.id}
-                    className={`flex flex-col gap-2 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
-                      isDarkMode
-                        ? 'border-white/10 bg-white/5 text-indigo-100'
-                        : 'border-white/20 bg-white/60 text-pink-900/80'
-                    }`}
-                  >
-                    <div>
-                      <p className="font-semibold">{todo.text}</p>
-                      <p className={`text-xs ${isDarkMode ? 'text-indigo-100/60' : 'text-pink-900/60'}`}>
-                        {todo.archived_reason === 'completed' ? 'Completed' : 'Removed'} • {archivedDate ?? 'Recently'}
-                        {timeLabel ? ` • ${timeLabel}` : ''}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onRestoreTodo(todo)}
-                      className={`self-start rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${
-                        isDarkMode
-                          ? 'bg-indigo-500/30 text-indigo-100 hover:bg-indigo-500/50'
-                          : 'bg-pink-500/20 text-pink-700 hover:bg-pink-500/30'
-                      }`}
-                    >
-                      Restore
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-      </div>
+      {todos.length > 0 && (
+        <div className="mt-6 text-center text-sm text-gray-500 animate-fadeUp">
+          {completedCount} of {todos.length} tasks completed
+        </div>
+      )}
     </div>
   );
 };

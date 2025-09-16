@@ -103,18 +103,10 @@ export interface ContextModule {
     unlock_at: string;
 }
 
-export type TodoOrigin = 'canvas' | 'manual';
-
-export type ArchiveReason = 'completed' | 'deleted';
-
 export interface TodoItem {
     id: number;
     text: string;
     due_at?: string | null;
     created_at?: string;
     completed: boolean;
-    origin?: TodoOrigin;
-    scheduled_time?: string | null;
-    archived_at?: string | null;
-    archived_reason?: ArchiveReason;
 }
