@@ -102,3 +102,11 @@ export interface ContextModule {
     workflow_state: string;
     unlock_at: string;
 }
+
+export interface TodoItem {
+    id: number;
+    text: string;
+    due_at?: string | null;
+    created_at?: string;
+    completed: boolean;
+}
