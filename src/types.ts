@@ -14,13 +14,13 @@ export interface RootTodo {
 export interface Assignment {
     id: number;
     description?: string;
-    due_at: string;
-    unlock_at: any;
-    lock_at: any;
+    due_at: string | null;
+    unlock_at: string | null;
+    lock_at: string | null;
     points_possible: number;
     grading_type: string;
     assignment_group_id: number;
-    grading_standard_id: any;
+    grading_standard_id: number | null;
     created_at: string;
     updated_at: string;
     peer_reviews: boolean;
@@ -28,7 +28,7 @@ export interface Assignment {
     position: number;
     grade_group_students_individually: boolean;
     anonymous_peer_reviews: boolean;
-    group_category_id: any;
+    group_category_id: number | null;
     post_to_sis: boolean;
     moderated_grading: boolean;
     omit_from_final_grade: boolean;
@@ -38,10 +38,10 @@ export interface Assignment {
     graders_anonymous_to_graders: boolean;
     grader_count: number;
     grader_comments_visible_to_graders: boolean;
-    final_grader_id: any;
+    final_grader_id: number | null;
     grader_names_visible_to_final_grader: boolean;
     allowed_attempts: number;
-    annotatable_attachment_id: any;
+    annotatable_attachment_id: number | null;
     hide_in_gradebook: boolean;
     suppress_assignment: boolean;
     secure_params: string;
@@ -56,11 +56,11 @@ export interface Assignment {
     graded_submissions_exist: boolean;
     is_quiz_assignment: boolean;
     can_duplicate: boolean;
-    original_course_id: any;
-    original_assignment_id: any;
-    original_lti_resource_link_id: any;
-    original_assignment_name: any;
-    original_quiz_id: any;
+    original_course_id: number | null;
+    original_assignment_id: number | null;
+    original_lti_resource_link_id: string | null;
+    original_assignment_name: string | null;
+    original_quiz_id: number | null;
     workflow_state: string;
     important_dates: boolean;
     muted: boolean;
@@ -81,9 +81,9 @@ export interface Assignment {
 
 export interface AllDate {
     id: number;
-    due_at: string;
-    unlock_at: any;
-    lock_at: any;
+    due_at: string | null;
+    unlock_at: string | null;
+    lock_at: string | null;
     title: string;
     set_type: string;
     set_id: number;
@@ -100,5 +100,32 @@ export interface ContextModule {
     context_type: string;
     context_id: number;
     workflow_state: string;
-    unlock_at: string;
+    unlock_at: string | null;
+}
+
+export type TodoOrigin = 'canvas' | 'manual';
+
+export type ArchiveReason = 'completed' | 'deleted';
+
+export interface TodoItem {
+    id: number;
+    text: string;
+    due_at?: string | null;
+    created_at?: string;
+    completed: boolean;
+    origin?: TodoOrigin;
+    external_id?: number | null;
+    scheduled_time?: string | null;
+    archived_at?: string | null;
+    archived_reason?: ArchiveReason;
+}
+
+export interface PlannerArchiveBuckets {
+    completed: TodoItem[];
+    deleted: TodoItem[];
+}
+
+export interface PlannerStatePayload {
+    active: TodoItem[];
+    archive: PlannerArchiveBuckets;
 }
