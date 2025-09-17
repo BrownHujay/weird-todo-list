@@ -203,14 +203,14 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
   const segmentButtonClasses = (scope: CalendarView) => {
     const isActive = viewScope === scope;
     if (isDarkMode) {
-      return `flex-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${
+      return `flex-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-[background-color,border-color,box-shadow] ${
         isActive
           ? 'bg-indigo-500/80 text-white shadow-lg'
           : 'text-indigo-100/60 hover:bg-indigo-500/20'
       }`;
     }
 
-    return `flex-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${
+    return `flex-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-[background-color,border-color,box-shadow] ${
       isActive
         ? 'bg-pink-500/80 text-white shadow-lg'
         : 'text-pink-900/60 hover:bg-pink-500/20'
@@ -220,7 +220,7 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
   return (
     <div className="animate-fadeIn space-y-6">
       <div
-        className={`rounded-3xl border p-6 shadow-xl backdrop-blur-xl transition-colors ${
+        className={`rounded-3xl border p-6 shadow-xl backdrop-blur-xl transition-[background-color,border-color,box-shadow] ${
           isDarkMode ? 'border-white/10 bg-white/5 text-indigo-50' : 'border-white/30 bg-white/60 text-pink-900/80'
         }`}
       >
@@ -244,7 +244,7 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
               <button
                 type="button"
                 onClick={goToPrevious}
-                className={`rounded-full border p-2 transition ${
+                className={`rounded-full border p-2 transition-[background-color,border-color,box-shadow] ${
                   isDarkMode
                     ? 'border-white/10 bg-white/10 text-indigo-100 hover:bg-white/20'
                     : 'border-white/30 bg-white/40 text-pink-700/80 hover:bg-white/70'
@@ -262,7 +262,7 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
               <button
                 type="button"
                 onClick={goToToday}
-                className={`rounded-full border px-4 py-2 text-xs font-semibold shadow-md transition ${
+                className={`rounded-full border px-4 py-2 text-xs font-semibold shadow-md transition-[background-color,border-color,box-shadow] ${
                   isDarkMode
                     ? 'border-white/15 bg-indigo-500/40 text-white hover:bg-indigo-500/60'
                     : 'border-white/40 bg-gradient-to-r from-pink-300/70 to-purple-300/70 text-white hover:shadow-lg hover:shadow-pink-500/20'
@@ -273,7 +273,7 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
               <button
                 type="button"
                 onClick={goToNext}
-                className={`rounded-full border p-2 transition ${
+                className={`rounded-full border p-2 transition-[background-color,border-color,box-shadow] ${
                   isDarkMode
                     ? 'border-white/10 bg-white/10 text-indigo-100 hover:bg-white/20'
                     : 'border-white/30 bg-white/40 text-pink-700/80 hover:bg-white/70'
@@ -336,7 +336,7 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
                     type="button"
                     key={key}
                     onClick={() => setSelectedDate(date)}
-                    className={`flex min-h-[120px] flex-col rounded-2xl border p-3 text-left transition-all duration-300 ${
+                    className={`flex min-h-[120px] flex-col rounded-2xl border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-300 ${
                       isCurrentMonth
                         ? isDarkMode
                           ? 'border-white/10 bg-white/10 text-indigo-100 hover:bg-white/20'
@@ -411,7 +411,7 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
                     key={key}
                     type="button"
                     onClick={() => setSelectedDate(date)}
-                    className={`flex h-full flex-col justify-between rounded-2xl border p-4 text-left transition ${
+                    className={`flex h-full flex-col justify-between rounded-2xl border p-4 text-left transition-[background-color,border-color,box-shadow] ${
                       isDarkMode
                         ? 'border-white/10 bg-white/10 text-indigo-100 hover:bg-white/20'
                         : 'border-white/20 bg-white/70 text-pink-900/80 hover:shadow-lg hover:shadow-pink-500/10'
@@ -445,7 +445,7 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
                               event.stopPropagation();
                               onCompleteTodo(todo.id);
                             }}
-                            className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium transition ${
+                            className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium transition-[background-color,border-color,box-shadow] ${
                               isDarkMode
                                 ? 'border-white/10 bg-white/10 text-indigo-100 hover:bg-indigo-500/20'
                                 : 'border-white/30 bg-white/80 text-pink-900/90 hover:bg-white'
@@ -491,7 +491,7 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
                       key={todo.id}
                       type="button"
                       onClick={() => onCompleteTodo(todo.id)}
-                      className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                      className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition-[background-color,border-color,box-shadow] ${
                         isDarkMode
                           ? 'border-white/10 bg-white/10 text-indigo-100 hover:bg-indigo-500/20'
                           : 'border-white/30 bg-white/80 text-pink-900/90 hover:bg-white'
@@ -542,7 +542,7 @@ const Calendar = ({ todos, onCompleteTodo, isDarkMode }: CalendarProps) => {
                 key={todo.id}
                 type="button"
                 onClick={() => onCompleteTodo(todo.id)}
-                className={`rounded-full border px-3 py-1 text-sm shadow-sm transition-all duration-200 ${
+                className={`rounded-full border px-3 py-1 text-sm shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-200 ${
                   isDarkMode
                     ? 'border-white/10 bg-white/10 text-indigo-100 hover:bg-indigo-500/20'
                     : 'border-white/30 bg-white/60 text-pink-900/80 hover:border-white/50 hover:bg-white/80'
