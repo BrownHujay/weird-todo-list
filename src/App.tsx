@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import type { CSSProperties, FormEvent, JSX } from 'react';
+import type { CSSProperties, FormEvent } from 'react';
 import Calendar from './components/Calendar';
 import TodoList from './components/TodoList';
 import AgentPanel from './components/AgentPanel';
@@ -391,56 +391,19 @@ const App = () => {
     }
   };
 
-  const themeOptions: ThemeMode[] = ['light', 'dark', 'system'];
-  const themeLabelClass = (mode: ThemeMode) =>
-    themeMode === mode ? 'text-white drop-shadow' : isDarkMode ? 'text-indigo-100/70' : 'text-pink-900/60';
-  const themeTrackClasses = isDarkMode
-    ? 'border-white/15 bg-white/10 text-indigo-100'
-    : 'border-white/40 bg-white/60 text-pink-900/70';
-  const renderThemeIcon = (mode: ThemeMode): JSX.Element => {
-    if (mode === 'dark') {
-      return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-          <path d="M21 12.79A9 9 0 0111.21 3a7 7 0 1010 9.79z" />
-        </svg>
-      );
-    }
-    if (mode === 'light') {
-      return (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-4 h-4"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
-          />
-        </svg>
-      );
-    }
-    return (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-        className="w-4 h-4"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M3 6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v8.25a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V6.75z"
-        />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 21h6M12 17.25V21" />
-      </svg>
-    );
+  const cycleThemeMode = () => {
+    setThemeMode((previousMode) => {
+      const nextMode: ThemeMode =
+        previousMode === 'light' ? 'dark' : previousMode === 'dark' ? 'system' : 'light';
+      return nextMode;
+    });
   };
+
+  const nextThemeMode: ThemeMode =
+    themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
+  const themeButtonAriaLabel = `Switch to ${THEME_MODE_LABELS[nextThemeMode]} mode`;
+  const themeButtonAriaPressed: boolean | 'mixed' =
+    themeMode === 'system' ? 'mixed' : themeMode === 'dark';
 
   const thumbGradient = isDarkMode
     ? 'bg-gradient-to-r from-purple-500/80 to-indigo-500/80'
@@ -483,7 +446,7 @@ const App = () => {
 
   return (
     <div
-      className={`relative w-full overflow-hidden transition-colors duration-500 ${
+      className={`relative min-h-screen w-full overflow-hidden transition-colors duration-500 ${
         isDarkMode ? 'bg-[#0b0314] text-indigo-50' : 'bg-[#fefcff] text-pink-900/80'
       } p-4 md:p-8`}
       aria-busy={isLoading}
@@ -510,37 +473,68 @@ const App = () => {
           </div>
 
           <div className="flex gap-3 justify-center md:justify-end">
-            <div
-              className={`relative flex w-full max-w-sm overflow-hidden rounded-full border p-1 text-sm font-semibold shadow-inner backdrop-blur ${themeTrackClasses}`}
-              role="radiogroup"
-              aria-label="Theme mode"
+            <button
+              type="button"
+              onClick={cycleThemeMode}
+              className={`group flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur ${
+                isDarkMode
+                  ? 'text-indigo-100 border-white/15 bg-white/10 hover:bg-white/20'
+                  : 'border-white/40 bg-white/60 text-pink-900/70 hover:bg-white/80'
+              }`}
+              aria-pressed={themeButtonAriaPressed}
+              aria-label={themeButtonAriaLabel}
             >
-              {themeOptions.map((option) => {
-                const isActive = themeMode === option;
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    role="radio"
-                    aria-checked={isActive}
-                    className={`relative flex-1 rounded-full px-3 py-2 transition-colors duration-300 ${themeLabelClass(option)}`}
-                    onClick={() => setThemeMode(option)}
+              {themeMode === 'dark' ? (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="w-4 h-4"
                   >
-                    {isActive && (
-                      <motion.span
-                        layoutId="theme-toggle-thumb"
-                        className={`absolute inset-0 rounded-full shadow-lg ${thumbGradient}`}
-                        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      {renderThemeIcon(option)}
-                      <span>{THEME_MODE_LABELS[option]}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    <path d="M21 12.79A9 9 0 0111.21 3a7 7 0 1010 9.79z" />
+                  </svg>
+                  <span>{THEME_MODE_LABELS.dark}</span>
+                </>
+              ) : themeMode === 'light' ? (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
+                    />
+                  </svg>
+                  <span>{THEME_MODE_LABELS.light}</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v8.25a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V6.75z"
+                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 21h6M12 17.25V21" />
+                  </svg>
+                  <span>{THEME_MODE_LABELS.system}</span>
+                </>
+              )}
+            </button>
           </div>
         </header>
         <div className="flex justify-center mb-8">
