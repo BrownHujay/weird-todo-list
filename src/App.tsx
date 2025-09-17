@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties, FormEvent } from 'react';
 import Calendar from './components/Calendar';
 import TodoList from './components/TodoList';
+import AgentPanel from './components/AgentPanel';
 import type { ArchiveReason, PlannerStatePayload, TodoItem } from './types';
 import { motion } from "framer-motion";
 
-type ViewMode = 'list' | 'calendar';
+type ViewMode = 'list' | 'calendar' | 'agent';
 type ThemeMode = 'light' | 'dark' | 'system';
 
 const THEME_STORAGE_KEY = 'kota-planner-theme';
@@ -75,6 +76,39 @@ const schedule = (callback: () => void, delay: number) => {
   setTimeout(callback, delay);
 };
 
+const usePrefersDarkScheme = (initialValue: boolean) =>
+  useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+        return () => {};
+      }
+
+      const media = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = () => {
+        onStoreChange();
+      };
+
+      if (typeof media.addEventListener === 'function') {
+        media.addEventListener('change', listener);
+        return () => {
+          media.removeEventListener('change', listener);
+        };
+      }
+
+      media.addListener(listener);
+      return () => {
+        media.removeListener(listener);
+      };
+    },
+    () => {
+      if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+        return initialValue;
+      }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    },
+    () => initialValue,
+  );
+
 const App = () => {
   const initialTheme = useMemo(() => getInitialThemeSettings(), []);
   const [activeTodos, setActiveTodos] = useState<TodoItem[]>([]);
@@ -87,9 +121,11 @@ const App = () => {
   const [completingId, setCompletingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [themeMode, setThemeMode] = useState<ThemeMode>(initialTheme.mode);
-  const [isDarkMode, setIsDarkMode] = useState(initialTheme.isDark);
   const [latestArchivedId, setLatestArchivedId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const hasHydratedRef = useRef(false);
+  const prefersDarkScheme = usePrefersDarkScheme(initialTheme.isDark);
+  const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && prefersDarkScheme);
 
   const applyPlannerState = useCallback(
     (state: PlannerStatePayload) => {
@@ -102,13 +138,28 @@ const App = () => {
 
   const loadPlannerState = useCallback(
     async (options?: { sync?: boolean }) => {
-      const query = options?.sync ? '?sync=true' : '';
-      const response = await fetch(`/api/planner${query}`);
-      if (!response.ok) {
-        throw new Error(`Planner request failed with status ${response.status}`);
+      const shouldMarkHydrated = Boolean(options?.sync && !hasHydratedRef.current);
+      if (options?.sync) {
+        if (hasHydratedRef.current) {
+          return;
+        }
+        hasHydratedRef.current = true;
       }
-      const payload = (await response.json()) as PlannerStatePayload;
-      applyPlannerState(payload);
+
+      try {
+        const query = options?.sync ? '?sync=true' : '';
+        const response = await fetch(`/api/planner${query}`);
+        if (!response.ok) {
+          throw new Error(`Planner request failed with status ${response.status}`);
+        }
+        const payload = (await response.json()) as PlannerStatePayload;
+        applyPlannerState(payload);
+      } catch (error) {
+        if (shouldMarkHydrated) {
+          hasHydratedRef.current = false;
+        }
+        throw error;
+      }
     },
     [applyPlannerState],
   );
@@ -158,34 +209,6 @@ const App = () => {
     root.dataset.theme = isDarkMode ? 'dark' : 'light';
     root.style.colorScheme = isDarkMode ? 'dark' : 'light';
   }, [isDarkMode]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    if (themeMode === 'system') {
-      const media = window.matchMedia('(prefers-color-scheme: dark)');
-      const listener = (event: MediaQueryListEvent) => {
-        setIsDarkMode(event.matches);
-      };
-
-      setIsDarkMode(media.matches);
-
-      if (typeof media.addEventListener === 'function') {
-        media.addEventListener('change', listener);
-        return () => {
-          media.removeEventListener('change', listener);
-        };
-      }
-
-      media.addListener(listener);
-      return () => {
-        media.removeListener(listener);
-      };
-    }
-
-    setIsDarkMode(themeMode === 'dark');
-    return undefined;
-  }, [themeMode]);
 
   const sortedActiveTodos = useMemo(() => {
     const merged = [...activeTodos];
@@ -340,15 +363,10 @@ const App = () => {
     }
   };
 
-  const toggleView = () => {
-    setViewMode((prev) => (prev === 'list' ? 'calendar' : 'list'));
-  };
-
   const cycleThemeMode = () => {
     setThemeMode((previousMode) => {
       const nextMode: ThemeMode =
         previousMode === 'light' ? 'dark' : previousMode === 'dark' ? 'system' : 'light';
-      setIsDarkMode(resolveIsDark(nextMode));
       return nextMode;
     });
   };
@@ -366,12 +384,17 @@ const App = () => {
   const trackClasses = isDarkMode
     ? 'border-white/10 bg-white/10 text-indigo-100'
     : 'border-white/30 bg-white/20 text-pink-900/70';
-
-  const listLabelClass = viewMode === 'list' ? 'text-white' : isDarkMode ? 'text-indigo-100/70' : 'text-pink-900/60';
-  const calendarLabelClass = viewMode === 'calendar' ? 'text-white' : isDarkMode ? 'text-indigo-100/70' : 'text-pink-900/60';
-
-  const contentRailTransform: CSSProperties = {
-    transform: viewMode === 'list' ? 'translateX(0%)' : 'translateX(-50%)',
+  const viewOptions: ViewMode[] = ['list', 'calendar', 'agent'];
+  const activeIndex = viewOptions.indexOf(viewMode);
+  const panelWidthPercent = 100 / viewOptions.length;
+  const viewLabelClass = (mode: ViewMode) =>
+    viewMode === mode ? 'text-white drop-shadow' : isDarkMode ? 'text-indigo-100/70' : 'text-pink-900/60';
+  const contentRailStyle: CSSProperties = {
+    width: `${viewOptions.length * 100}%`,
+    transform: `translateX(-${activeIndex * panelWidthPercent}%)`,
+  };
+  const panelStyle: CSSProperties = {
+    width: `${panelWidthPercent}%`,
   };
 
   const backgroundStyle: CSSProperties = isDarkMode
@@ -480,37 +503,59 @@ const App = () => {
           </div>
         </header>
         <div className="flex justify-center mb-8">
-        <button
-          type="button"
-          onClick={toggleView}
-          aria-pressed={viewMode === "calendar"}
-          className={`flex relative items-center p-2 w-full max-w-xs text-sm font-semibold rounded-full border shadow-inner backdrop-blur ${trackClasses}`}
-        >
-          <motion.span
-            initial={false}
-            animate={{ x: viewMode === "calendar" ? "calc(100% - 1rem)" : "0%" }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className={`absolute inset-y-2 left-2 w-1/2 rounded-full shadow-lg ${thumbGradient}`}
-          />
-          <span className={`relative z-10 flex-1 text-center ${listLabelClass}`}>
-            List
-          </span>
-          <span className={`relative z-10 flex-1 text-center ${calendarLabelClass}`}>
-            Calendar
-          </span>
-        </button>
+          <div
+            className={`relative flex w-full max-w-xl overflow-hidden rounded-full border p-1 text-sm font-semibold shadow-inner backdrop-blur ${trackClasses}`}
+            role="tablist"
+            aria-label="Planner view"
+          >
+            {viewOptions.map((option) => {
+              const label = option === 'list' ? 'List' : option === 'calendar' ? 'Calendar' : 'Agent';
+              const isActive = viewMode === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`relative flex-1 rounded-full px-4 py-2 transition-colors duration-300 ${viewLabelClass(option)}`}
+                  onClick={() => setViewMode(option)}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="view-toggle-thumb"
+                      className={`absolute inset-0 rounded-full shadow-lg ${thumbGradient}`}
+                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {label}
+                    {option === 'agent' ? (
+                      <span
+                        className={`text-[10px] uppercase tracking-[0.2em] ${
+                          isActive ? 'text-white/70' : isDarkMode ? 'text-indigo-100/50' : 'text-pink-900/40'
+                        }`}
+                      >
+                        Beta
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="relative w-full overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 p-1 backdrop-blur-lg">
           <div
-            className="flex w-[200%] transform-gpu transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={contentRailTransform}
+            className="flex transform-gpu transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={contentRailStyle}
           >
             <div
-              className={`w-1/2 flex-shrink-0 p-4 sm:p-6 transform-gpu transition-all duration-500 ease-out ${
+              className={`flex-shrink-0 p-4 sm:p-6 transform-gpu transition-all duration-500 ease-out ${
                 viewMode === 'list'
                   ? 'pointer-events-auto opacity-100 translate-y-0 scale-100'
                   : 'pointer-events-none opacity-0 -translate-y-6 scale-95'
               }`}
+              style={panelStyle}
             >
               <TodoList
                 todos={sortedActiveTodos}
@@ -535,13 +580,29 @@ const App = () => {
               />
             </div>
             <div
-              className={`w-1/2 flex-shrink-0 p-4 sm:p-6 transform-gpu transition-all duration-500 ease-out ${
+              className={`flex-shrink-0 p-4 sm:p-6 transform-gpu transition-all duration-500 ease-out ${
                 viewMode === 'calendar'
                   ? 'pointer-events-auto opacity-100 translate-y-0 scale-100'
                   : 'pointer-events-none opacity-0 translate-y-6 scale-95'
               }`}
+              style={panelStyle}
             >
               <Calendar todos={sortedActiveTodos} onCompleteTodo={completeTodo} isDarkMode={isDarkMode} />
+            </div>
+            <div
+              className={`flex-shrink-0 p-4 sm:p-6 transform-gpu transition-all duration-500 ease-out ${
+                viewMode === 'agent'
+                  ? 'pointer-events-auto opacity-100 translate-y-0 scale-100'
+                  : 'pointer-events-none opacity-0 translate-y-6 scale-95'
+              }`}
+              style={panelStyle}
+            >
+              <AgentPanel
+                isDarkMode={isDarkMode}
+                activeTodos={sortedActiveTodos}
+                completedTodos={completedArchive}
+                isLoading={isLoading}
+              />
             </div>
           </div>
         </div>
