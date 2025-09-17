@@ -446,7 +446,7 @@ const App = () => {
 
   return (
     <div
-      className={`relative min-h-screen w-full overflow-hidden transition-[background-color,border-color] duration-500 ${
+      className={`relative min-h-screen w-full overflow-hidden transition-colors duration-500 ${
         isDarkMode ? 'bg-[#0b0314] text-indigo-50' : 'bg-[#fefcff] text-pink-900/80'
       } p-4 md:p-8`}
       aria-busy={isLoading}
@@ -539,7 +539,7 @@ const App = () => {
         </header>
         <div className="flex justify-center mb-8">
           <div
-            className={`relative flex w-full max-w-xl overflow-hidden rounded-full border p-1 text-sm font-semibold shadow-inner backdrop-blur transition-[background-color,border-color] duration-300 ${trackClasses}`}
+            className={`relative flex w-full max-w-xl overflow-hidden rounded-full border p-1 text-sm font-semibold shadow-inner backdrop-blur ${trackClasses}`}
             role="tablist"
             aria-label="Planner view"
           >
@@ -552,7 +552,7 @@ const App = () => {
                   type="button"
                   role="tab"
                   aria-selected={isActive}
-                  className={`relative flex-1 rounded-full px-4 py-2 transition-[background-color,border-color] duration-300 ${viewLabelClass(option)}`}
+                  className={`relative flex-1 rounded-full px-4 py-2 transition-colors duration-300 ${viewLabelClass(option)}`}
                   onClick={() => setViewMode(option)}
                 >
                   {isActive && (
@@ -585,7 +585,7 @@ const App = () => {
             style={contentRailStyle}
           >
             <div
-              className={`flex-shrink-0 p-4 sm:p-6 transform-gpu transition-transform transition-opacity duration-500 ease-out ${
+              className={`flex-shrink-0 p-4 sm:p-6 transform-gpu transition-all duration-500 ease-out ${
                 viewMode === 'list'
                   ? 'pointer-events-auto opacity-100 translate-y-0 scale-100'
                   : 'pointer-events-none opacity-0 -translate-y-6 scale-95'
@@ -615,7 +615,7 @@ const App = () => {
               />
             </div>
             <div
-              className={`flex-shrink-0 p-4 sm:p-6 transform-gpu transition-transform transition-opacity duration-500 ease-out ${
+              className={`flex-shrink-0 p-4 sm:p-6 transform-gpu transition-all duration-500 ease-out ${
                 viewMode === 'calendar'
                   ? 'pointer-events-auto opacity-100 translate-y-0 scale-100'
                   : 'pointer-events-none opacity-0 translate-y-6 scale-95'
@@ -625,7 +625,7 @@ const App = () => {
               <Calendar todos={sortedActiveTodos} onCompleteTodo={completeTodo} isDarkMode={isDarkMode} />
             </div>
             <div
-              className={`flex-shrink-0 p-4 sm:p-6 transform-gpu transition-transform transition-opacity duration-500 ease-out ${
+              className={`flex-shrink-0 p-4 sm:p-6 transform-gpu transition-all duration-500 ease-out ${
                 viewMode === 'agent'
                   ? 'pointer-events-auto opacity-100 translate-y-0 scale-100'
                   : 'pointer-events-none opacity-0 translate-y-6 scale-95'
