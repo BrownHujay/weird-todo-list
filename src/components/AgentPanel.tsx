@@ -320,7 +320,7 @@ const AgentPanel = ({ isDarkMode, activeTodos, completedTodos, isLoading }: Agen
 
   const [messages, setMessages] = useState<AgentMessage[]>(() => buildDemoTranscript(summary));
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (hasUserInteracted) return;
@@ -328,8 +328,14 @@ const AgentPanel = ({ isDarkMode, activeTodos, completedTodos, isLoading }: Agen
   }, [summary, hasUserInteracted]);
 
   useEffect(() => {
-    scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: hasUserInteracted ? 'smooth' : 'auto',
+    });
+  }, [messages, hasUserInteracted]);
 
   const panelClass = isDarkMode
     ? 'border-white/10 bg-black/40 text-indigo-50'
@@ -608,7 +614,12 @@ const AgentPanel = ({ isDarkMode, activeTodos, completedTodos, isLoading }: Agen
           </div>
         </header>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6" role="log" aria-live="polite">
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 space-y-5 overflow-y-auto px-6 py-6"
+          role="log"
+          aria-live="polite"
+        >
           {messages.map((message) => {
             if (message.kind === 'widget') {
               return (
@@ -636,7 +647,6 @@ const AgentPanel = ({ isDarkMode, activeTodos, completedTodos, isLoading }: Agen
               </div>
             );
           })}
-          <div ref={scrollAnchorRef} />
         </div>
 
         <form
