@@ -397,21 +397,28 @@ const App = () => {
     width: `${panelWidthPercent}%`,
   };
 
-  const backgroundStyle: CSSProperties = isDarkMode
-    ? {
-        backgroundImage: `
+  const backgroundGradient = useMemo(
+    () =>
+      isDarkMode
+        ? `
           radial-gradient(circle at 25% 65%, rgba(88, 28, 135, 0.55), transparent 58%),
-          radial-gradient(circle at 70% 30%, rgba(37, 99, 235, 0.35), transparent 65%)`,
-      }
-    : {
-        backgroundImage: `
+          radial-gradient(circle at 70% 30%, rgba(37, 99, 235, 0.35), transparent 65%)`
+        : `
           radial-gradient(circle at 30% 70%, rgba(173, 216, 230, 0.35), transparent 60%),
           radial-gradient(circle at 70% 30%, rgba(255, 182, 193, 0.4), transparent 60%)`,
-      };
+    [isDarkMode],
+  );
+
+  const backgroundStyle = useMemo<CSSProperties>(
+    () => ({
+      backgroundImage: backgroundGradient,
+    }),
+    [backgroundGradient],
+  );
 
   return (
     <div
-      className={`relative min-h-screen w-full overflow-hidden ${
+      className={`relative min-h-screen w-full overflow-hidden transition-colors duration-500 ${
         isDarkMode ? 'bg-[#0b0314] text-indigo-50' : 'bg-[#fefcff] text-pink-900/80'
       } p-4 md:p-8`}
       aria-busy={isLoading}
