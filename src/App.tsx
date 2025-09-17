@@ -6,8 +6,65 @@ import type { ArchiveReason, PlannerStatePayload, TodoItem } from './types';
 import { motion } from "framer-motion";
 
 type ViewMode = 'list' | 'calendar';
+type ThemeMode = 'light' | 'dark' | 'system';
 
-const DARK_MODE_STORAGE_KEY = 'kota-planner-dark-mode';
+const THEME_STORAGE_KEY = 'kota-planner-theme';
+
+const isThemeMode = (value: unknown): value is ThemeMode =>
+  value === 'light' || value === 'dark' || value === 'system';
+
+const coerceStoredThemeMode = (value: string | null): ThemeMode | null => {
+  if (!value) return null;
+  if (isThemeMode(value)) return value;
+  if (value === 'true') return 'dark';
+  if (value === 'false') return 'light';
+  return null;
+};
+
+const getSystemPrefersDark = () =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-color-scheme: dark)').matches
+    : false;
+
+const resolveIsDark = (mode: ThemeMode) => {
+  if (mode === 'dark') return true;
+  if (mode === 'light') return false;
+  return getSystemPrefersDark();
+};
+
+const getInitialThemeSettings = () => {
+  if (typeof document !== 'undefined') {
+    const { dataset } = document.documentElement;
+    const datasetMode = dataset.themeMode;
+    if (datasetMode && isThemeMode(datasetMode)) {
+      const datasetTheme = dataset.theme === 'dark';
+      return {
+        mode: datasetMode,
+        isDark: datasetMode === 'system' ? datasetTheme : datasetMode === 'dark',
+      } as const;
+    }
+  }
+
+  if (typeof window === 'undefined') {
+    return { mode: 'system' as ThemeMode, isDark: false };
+  }
+
+  let storedMode: ThemeMode | null = null;
+  try {
+    storedMode = coerceStoredThemeMode(window.localStorage.getItem(THEME_STORAGE_KEY));
+  } catch (error) {
+    console.error('Failed to read theme preference', error);
+  }
+
+  const mode = storedMode ?? ('system' as ThemeMode);
+  return { mode, isDark: resolveIsDark(mode) } as const;
+};
+
+const THEME_MODE_LABELS: Record<ThemeMode, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
+};
 
 const schedule = (callback: () => void, delay: number) => {
   if (typeof window !== 'undefined') {
@@ -19,6 +76,7 @@ const schedule = (callback: () => void, delay: number) => {
 };
 
 const App = () => {
+  const initialTheme = useMemo(() => getInitialThemeSettings(), []);
   const [activeTodos, setActiveTodos] = useState<TodoItem[]>([]);
   const [completedArchive, setCompletedArchive] = useState<TodoItem[]>([]);
   const [deletedArchive, setDeletedArchive] = useState<TodoItem[]>([]);
@@ -28,7 +86,8 @@ const App = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [completingId, setCompletingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(initialTheme.mode);
+  const [isDarkMode, setIsDarkMode] = useState(initialTheme.isDark);
   const [latestArchivedId, setLatestArchivedId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -80,24 +139,53 @@ const App = () => {
     if (typeof window === 'undefined') return;
 
     try {
-      const stored = window.localStorage.getItem(DARK_MODE_STORAGE_KEY);
-      if (stored !== null) {
-        setIsDarkMode(stored === 'true');
-      }
+      window.localStorage.setItem(THEME_STORAGE_KEY, themeMode);
     } catch (error) {
-      console.error('Failed to read dark mode preference', error);
+      console.error('Failed to persist theme preference', error);
     }
-  }, []);
+  }, [themeMode]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    document.documentElement.dataset.themeMode = themeMode;
+  }, [themeMode]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const root = document.documentElement;
+    root.dataset.theme = isDarkMode ? 'dark' : 'light';
+    root.style.colorScheme = isDarkMode ? 'dark' : 'light';
+  }, [isDarkMode]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    try {
-      window.localStorage.setItem(DARK_MODE_STORAGE_KEY, isDarkMode ? 'true' : 'false');
-    } catch (error) {
-      console.error('Failed to persist dark mode preference', error);
+    if (themeMode === 'system') {
+      const media = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = (event: MediaQueryListEvent) => {
+        setIsDarkMode(event.matches);
+      };
+
+      setIsDarkMode(media.matches);
+
+      if (typeof media.addEventListener === 'function') {
+        media.addEventListener('change', listener);
+        return () => {
+          media.removeEventListener('change', listener);
+        };
+      }
+
+      media.addListener(listener);
+      return () => {
+        media.removeListener(listener);
+      };
     }
-  }, [isDarkMode]);
+
+    setIsDarkMode(themeMode === 'dark');
+    return undefined;
+  }, [themeMode]);
 
   const sortedActiveTodos = useMemo(() => {
     const merged = [...activeTodos];
@@ -256,9 +344,20 @@ const App = () => {
     setViewMode((prev) => (prev === 'list' ? 'calendar' : 'list'));
   };
 
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
+  const cycleThemeMode = () => {
+    setThemeMode((previousMode) => {
+      const nextMode: ThemeMode =
+        previousMode === 'light' ? 'dark' : previousMode === 'dark' ? 'system' : 'light';
+      setIsDarkMode(resolveIsDark(nextMode));
+      return nextMode;
+    });
   };
+
+  const nextThemeMode: ThemeMode =
+    themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
+  const themeButtonAriaLabel = `Switch to ${THEME_MODE_LABELS[nextThemeMode]} mode`;
+  const themeButtonAriaPressed: boolean | 'mixed' =
+    themeMode === 'system' ? 'mixed' : themeMode === 'dark';
 
   const thumbGradient = isDarkMode
     ? 'bg-gradient-to-r from-purple-500/80 to-indigo-500/80'
@@ -318,16 +417,16 @@ const App = () => {
           <div className="flex gap-3 justify-center md:justify-end">
             <button
               type="button"
-              onClick={toggleDarkMode}
+              onClick={cycleThemeMode}
               className={`group flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur ${
                 isDarkMode
                   ? 'text-indigo-100 border-white/15 bg-white/10 hover:bg-white/20'
                   : 'border-white/40 bg-white/60 text-pink-900/70 hover:bg-white/80'
               }`}
-              aria-pressed={isDarkMode}
-              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-pressed={themeButtonAriaPressed}
+              aria-label={themeButtonAriaLabel}
             >
-              {isDarkMode ? (
+              {themeMode === 'dark' ? (
                 <>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -337,9 +436,9 @@ const App = () => {
                   >
                     <path d="M21 12.79A9 9 0 0111.21 3a7 7 0 1010 9.79z" />
                   </svg>
-                  <span>Dark</span>
+                  <span>{THEME_MODE_LABELS.dark}</span>
                 </>
-              ) : (
+              ) : themeMode === 'light' ? (
                 <>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -355,7 +454,26 @@ const App = () => {
                       d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
                     />
                   </svg>
-                  <span>Light</span>
+                  <span>{THEME_MODE_LABELS.light}</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v8.25a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V6.75z"
+                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 21h6M12 17.25V21" />
+                  </svg>
+                  <span>{THEME_MODE_LABELS.system}</span>
                 </>
               )}
             </button>

@@ -5,6 +5,51 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + React + TS</title>
+    <style>
+      html:not([data-theme]) body {
+        visibility: hidden;
+      }
+
+      html[data-theme='dark'] body {
+        background-color: #0b0314;
+        color: rgb(224 231 255 / 0.95);
+      }
+
+      html[data-theme='light'] body {
+        background-color: #fefcff;
+        color: rgb(157 23 77 / 0.8);
+      }
+    </style>
+    <script>
+      (() => {
+        const storageKey = 'kota-planner-theme'
+        let storedPreference = null
+
+        try {
+          storedPreference = window.localStorage.getItem(storageKey)
+        } catch (error) {
+          // Ignore storage access issues during initial load
+        }
+
+        let mode = storedPreference
+        if (mode === 'true') mode = 'dark'
+        if (mode === 'false') mode = 'light'
+        if (mode !== 'light' && mode !== 'dark' && mode !== 'system') {
+          mode = 'system'
+        }
+
+        const prefersDark =
+          typeof window.matchMedia === 'function' &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches
+
+        const isDark = mode === 'dark' || (mode === 'system' && prefersDark)
+        const doc = document.documentElement
+
+        doc.dataset.theme = isDark ? 'dark' : 'light'
+        doc.dataset.themeMode = mode
+        doc.style.colorScheme = isDark ? 'dark' : 'light'
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
