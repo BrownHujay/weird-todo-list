@@ -109,6 +109,33 @@ const usePrefersDarkScheme = (initialValue: boolean) =>
     () => initialValue,
   );
 
+const todoListsEqual = (a: TodoItem[], b: TodoItem[]) => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+
+  for (let index = 0; index < a.length; index += 1) {
+    const left = a[index];
+    const right = b[index];
+
+    if (
+      left.id !== right.id ||
+      left.text !== right.text ||
+      left.due_at !== right.due_at ||
+      left.created_at !== right.created_at ||
+      left.completed !== right.completed ||
+      left.origin !== right.origin ||
+      left.external_id !== right.external_id ||
+      left.scheduled_time !== right.scheduled_time ||
+      left.archived_at !== right.archived_at ||
+      left.archived_reason !== right.archived_reason
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const App = () => {
   const initialTheme = useMemo(() => getInitialThemeSettings(), []);
   const [activeTodos, setActiveTodos] = useState<TodoItem[]>([]);
@@ -127,14 +154,15 @@ const App = () => {
   const prefersDarkScheme = usePrefersDarkScheme(initialTheme.isDark);
   const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && prefersDarkScheme);
 
-  const applyPlannerState = useCallback(
-    (state: PlannerStatePayload) => {
-      setActiveTodos(state.active ?? []);
-      setCompletedArchive(state.archive?.completed ?? []);
-      setDeletedArchive(state.archive?.deleted ?? []);
-    },
-    [],
-  );
+  const applyPlannerState = useCallback((state: PlannerStatePayload) => {
+    const nextActive = state.active ?? [];
+    const nextCompleted = state.archive?.completed ?? [];
+    const nextDeleted = state.archive?.deleted ?? [];
+
+    setActiveTodos((current) => (todoListsEqual(current, nextActive) ? current : nextActive));
+    setCompletedArchive((current) => (todoListsEqual(current, nextCompleted) ? current : nextCompleted));
+    setDeletedArchive((current) => (todoListsEqual(current, nextDeleted) ? current : nextDeleted));
+  }, []);
 
   const loadPlannerState = useCallback(
     async (options?: { sync?: boolean }) => {
