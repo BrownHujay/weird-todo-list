@@ -3,6 +3,7 @@ import type { CSSProperties, FormEvent } from 'react';
 import Calendar from './components/Calendar';
 import TodoList from './components/TodoList';
 import type { ArchiveReason, PlannerStatePayload, TodoItem } from './types';
+import { motion } from "framer-motion";
 
 type ViewMode = 'list' | 'calendar';
 
@@ -270,10 +271,6 @@ const App = () => {
   const listLabelClass = viewMode === 'list' ? 'text-white' : isDarkMode ? 'text-indigo-100/70' : 'text-pink-900/60';
   const calendarLabelClass = viewMode === 'calendar' ? 'text-white' : isDarkMode ? 'text-indigo-100/70' : 'text-pink-900/60';
 
-  const sliderKnobClasses = `absolute inset-y-1 left-1 w-[calc(50%-0.5rem)] rounded-full shadow-lg transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${thumbGradient} transform-gpu ${
-    viewMode === 'calendar' ? 'translate-x-[calc(100%+0.5rem)]' : 'translate-x-0'
-  }`;
-
   const contentRailTransform: CSSProperties = {
     transform: viewMode === 'list' ? 'translateX(0%)' : 'translateX(-50%)',
   };
@@ -297,10 +294,10 @@ const App = () => {
       } p-4 md:p-8`}
       aria-busy={isLoading}
     >
-      <div className="animate-gradientMove absolute inset-0 z-0" style={backgroundStyle} />
+      <div className="absolute inset-0 z-0 animate-gradientMove" style={backgroundStyle} />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-stretch">
-        <header className="mb-8 flex flex-col gap-6 text-center md:flex-row md:items-center md:justify-between md:text-left">
+      <div className="flex relative z-10 flex-col items-stretch mx-auto w-full max-w-5xl">
+        <header className="flex flex-col gap-6 mb-8 text-center md:flex-row md:items-center md:justify-between md:text-left">
           <div>
             <h1
               className={`mb-3 text-4xl font-bold text-transparent bg-clip-text drop-shadow-lg animate-fadeDown ${
@@ -314,18 +311,17 @@ const App = () => {
                 isDarkMode ? 'text-indigo-100/70' : 'text-pink-900/70'
               }`}
             >
-              Toggle between a focused task list and a dreamy calendar overview to keep everything on track — now with
-              day, week, and month focus modes.
+             Make a plan, work hard and get things done!
             </p>
           </div>
 
-          <div className="flex justify-center gap-3 md:justify-end">
+          <div className="flex gap-3 justify-center md:justify-end">
             <button
               type="button"
               onClick={toggleDarkMode}
               className={`group flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur ${
                 isDarkMode
-                  ? 'border-white/15 bg-white/10 text-indigo-100 hover:bg-white/20'
+                  ? 'text-indigo-100 border-white/15 bg-white/10 hover:bg-white/20'
                   : 'border-white/40 bg-white/60 text-pink-900/70 hover:bg-white/80'
               }`}
               aria-pressed={isDarkMode}
@@ -337,7 +333,7 @@ const App = () => {
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    className="h-4 w-4"
+                    className="w-4 h-4"
                   >
                     <path d="M21 12.79A9 9 0 0111.21 3a7 7 0 1010 9.79z" />
                   </svg>
@@ -351,7 +347,7 @@ const App = () => {
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
                     stroke="currentColor"
-                    className="h-4 w-4"
+                    className="w-4 h-4"
                   >
                     <path
                       strokeLinecap="round"
@@ -365,20 +361,27 @@ const App = () => {
             </button>
           </div>
         </header>
-
-        <div className="mb-8 flex justify-center">
-          <button
-            type="button"
-            onClick={toggleView}
-            aria-pressed={viewMode === 'calendar'}
-            className={`relative flex w-full max-w-xs items-center justify-between rounded-full border p-1.5 text-sm font-semibold shadow-inner backdrop-blur ${trackClasses}`}
-          >
-            <span className={sliderKnobClasses} />
-            <span className={`relative z-10 flex-1 text-center ${listLabelClass}`}>List</span>
-            <span className={`relative z-10 flex-1 text-center ${calendarLabelClass}`}>Calendar</span>
-          </button>
+        <div className="flex justify-center mb-8">
+        <button
+          type="button"
+          onClick={toggleView}
+          aria-pressed={viewMode === "calendar"}
+          className={`flex relative items-center p-2 w-full max-w-xs text-sm font-semibold rounded-full border shadow-inner backdrop-blur ${trackClasses}`}
+        >
+          <motion.span
+            initial={false}
+            animate={{ x: viewMode === "calendar" ? "calc(100% - 1rem)" : "0%" }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className={`absolute inset-y-2 left-2 w-1/2 rounded-full shadow-lg ${thumbGradient}`}
+          />
+          <span className={`relative z-10 flex-1 text-center ${listLabelClass}`}>
+            List
+          </span>
+          <span className={`relative z-10 flex-1 text-center ${calendarLabelClass}`}>
+            Calendar
+          </span>
+        </button>
         </div>
-
         <div className="relative w-full overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 p-1 backdrop-blur-lg">
           <div
             className="flex w-[200%] transform-gpu transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
@@ -425,10 +428,10 @@ const App = () => {
           </div>
         </div>
 
-        <div className="mt-6 text-center text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
+        <div className={`mt-6 text-center text-xs font-semibold uppercase tracking-[0.3em] ${ isDarkMode ? 'text-indigo-100/60' : 'text-pink-900/60'}`}>
           {sortedActiveTodos.length === 0
             ? 'All clear — enjoy the calm!'
-            : `${completedArchive.length} wins logged • ${completedArchive.length + deletedArchive.length} archived`}
+            : `${completedArchive.length} wins logged • ${deletedArchive.length} archived`}
         </div>
       </div>
     </div>

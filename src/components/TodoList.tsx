@@ -98,6 +98,7 @@ const TodoList = ({
   ) => {
     const headingClass = isDarkMode ? 'text-indigo-100/80' : 'text-pink-900/80';
     const descriptionClass = isDarkMode ? 'text-indigo-100/60' : 'text-pink-900/60';
+    const isCompletedGroup = reason === 'completed';
     const actionRestoreClass = isDarkMode
       ? 'bg-indigo-500/30 text-indigo-100 hover:bg-indigo-500/50'
       : 'bg-pink-500/20 text-pink-700 hover:bg-pink-500/30';
@@ -132,8 +133,12 @@ const TodoList = ({
             <div
               key={todo.id}
               className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between transition-shadow ${
-                isDarkMode
-                  ? 'border-white/10 bg-white/5 text-indigo-100'
+                isCompletedGroup
+                  ? isDarkMode
+                    ? 'text-emerald-100 border-emerald-400/30 bg-emerald-500/20'
+                    : 'border-green-200/80 bg-green-100/70 text-green-900/90'
+                  : isDarkMode
+                  ? 'text-indigo-100 border-white/10 bg-white/5'
                   : 'border-white/20 bg-white/60 text-pink-900/80'
               } ${highlightClass}`}
             >
@@ -144,23 +149,23 @@ const TodoList = ({
                   {timeLabel ? ` • ${timeLabel}` : ''}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2 items-center">
                 <button
                   type="button"
                   onClick={() => onRestoreTodo(todo)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${actionRestoreClass}`}
+                  className={`px-3 py-1 text-xs font-semibold tracking-wide uppercase rounded-full transition ${actionRestoreClass}`}
                 >
                   Restore
                 </button>
                 <button
                   type="button"
                   onClick={() => onPermanentDelete(todo)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full transition ${actionDeleteClass}`}
+                  className={`flex justify-center items-center w-8 h-8 rounded-full transition ${actionDeleteClass}`}
                   aria-label={`Delete ${todo.text} forever`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
+                    className="w-4 h-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -187,7 +192,7 @@ const TodoList = ({
     <div className="animate-fadeIn">
       <form onSubmit={onAddTodo} className="mb-8">
         <div className="flex flex-col gap-3 md:flex-row">
-          <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col flex-1 gap-3 sm:flex-row">
             <input
               type="text"
               value={newTodo}
@@ -196,11 +201,11 @@ const TodoList = ({
               aria-label="Task description"
               className={`w-full rounded-xl border p-3 placeholder:italic backdrop-blur-lg focus:outline-none focus:ring-2 ${
                 isDarkMode
-                  ? 'border-white/10 bg-white/5 text-indigo-100 placeholder:text-indigo-200/40 focus:ring-indigo-300/40'
+                  ? 'text-indigo-100 border-white/10 bg-white/5 placeholder:text-indigo-200/40 focus:ring-indigo-300/40'
                   : 'border-white/20 bg-white/10 text-pink-900/90 placeholder:text-pink-700/60 focus:ring-white/40'
               }`}
             />
-            <div className="flex w-full gap-3 sm:w-auto">
+            <div className="flex gap-3 w-full sm:w-auto">
               <input
                 type="date"
                 value={newDueDate}
@@ -208,7 +213,7 @@ const TodoList = ({
                 aria-label="Choose a due date"
                 className={`w-full rounded-xl border p-3 backdrop-blur-lg focus:outline-none focus:ring-2 sm:max-w-[200px] ${
                   isDarkMode
-                    ? 'border-white/10 bg-white/5 text-indigo-100 focus:ring-indigo-300/40'
+                    ? 'text-indigo-100 border-white/10 bg-white/5 focus:ring-indigo-300/40'
                     : 'border-white/20 bg-white/10 text-pink-900/90 focus:ring-white/40'
                 }`}
               />
@@ -219,7 +224,7 @@ const TodoList = ({
                 aria-label="Choose a time"
                 className={`w-full rounded-xl border p-3 backdrop-blur-lg focus:outline-none focus:ring-2 sm:max-w-[150px] ${
                   isDarkMode
-                    ? 'border-white/10 bg-white/5 text-indigo-100 focus:ring-indigo-300/40'
+                    ? 'text-indigo-100 border-white/10 bg-white/5 focus:ring-indigo-300/40'
                     : 'border-white/20 bg-white/10 text-pink-900/90 focus:ring-white/40'
                 }`}
               />
@@ -243,7 +248,7 @@ const TodoList = ({
         <div
           className={`animate-fadeIn rounded-2xl border p-6 text-center backdrop-blur-lg ${
             isDarkMode
-              ? 'border-white/10 bg-white/5 text-indigo-100'
+              ? 'text-indigo-100 border-white/10 bg-white/5'
               : 'border-white/20 bg-white/40 text-pink-900/70'
           }`}
         >
@@ -256,10 +261,15 @@ const TodoList = ({
             const timeLabel = formatTime(todo.scheduled_time ?? (todo.due_at ?? undefined));
             const animationClass =
               completingId === todo.id
-                ? 'animate-rollComplete'
+                ? 'animate-rollComplete bg-green-100/70 border-green-200/80 text-green-900/90'
                 : deletingId === todo.id
                 ? 'animate-fadeOut'
                 : 'animate-fadeIn';
+            
+            // Force green background when completing before animation
+            const completingStyle = completingId === todo.id 
+              ? { backgroundColor: 'rgb(220 252 231 / 0.7)', borderColor: 'rgb(187 247 208 / 0.8)' }
+              : {};
             const baseClass = todo.completed
               ? isDarkMode
                 ? 'border-emerald-400/30 bg-emerald-500/20 text-emerald-100'
@@ -272,19 +282,39 @@ const TodoList = ({
               <div
                 key={todo.id}
                 className={`flex items-start rounded-2xl border p-4 backdrop-blur-lg transition-all duration-300 ${baseClass} ${animationClass}`}
+                style={completingId === todo.id ? completingStyle : {}}
               >
-                <input
-                  type="checkbox"
-                  checked={todo.completed}
-                  onChange={() => onCompleteTodo(todo.id)}
-                  className={`mt-1 h-5 w-5 rounded-full border-2 transition-transform duration-200 focus:ring-2 ${
-                    isDarkMode
-                      ? 'border-indigo-300/50 text-indigo-200 focus:ring-indigo-300/40'
-                      : 'border-pink-200 text-pink-400 focus:ring-pink-300'
-                  }`}
-                  aria-label={`Mark ${todo.text} as complete`}
-                />
-                <div className="ml-3 flex-1">
+                <div className="relative mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={todo.completed}
+                    onChange={() => onCompleteTodo(todo.id)}
+                    className={`h-5 w-5 appearance-none rounded-full border-2 transition-all duration-200 focus:ring-2 focus:ring-offset-2 ${
+                      isDarkMode
+                        ? 'border-indigo-300/50 focus:ring-indigo-300/40 focus:ring-offset-indigo-900/50'
+                        : 'border-pink-200 focus:ring-pink-300 focus:ring-offset-pink-100/50'
+                    } ${
+                      todo.completed
+                        ? isDarkMode
+                          ? 'bg-emerald-500/90 border-emerald-400/70'
+                          : 'bg-green-400/90 border-green-300/80'
+                        : 'bg-white/20'
+                    }`}
+                    aria-label={`Mark ${todo.text} as complete`}
+                  />
+                  {todo.completed && (
+                    <svg
+                      className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 transform text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1 ml-3">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <p
                       className={`font-medium transition-all duration-300 ${
@@ -303,7 +333,7 @@ const TodoList = ({
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-3 w-3"
+                          className="w-3 h-3"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -335,7 +365,7 @@ const TodoList = ({
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
+                    className="w-5 h-5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
